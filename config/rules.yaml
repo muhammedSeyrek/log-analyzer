@@ -1,0 +1,22 @@
+files:
+  # EĞER WINDOWS'TAYSAN:
+  # Bu özel anahtar kelimeyi görünce program otomatik Event Viewer'a bağlanır.
+  - "SECURITY_LOGS" 
+  
+  # EĞER LINUX (KALI) İSEN:
+  # Bunu aç, üsttekini kapat (veya ikisi de kalabilir, kod işletim sistemine bakar)
+  # - "/var/log/auth.log"
+
+rules:
+  - name: "TEST: Successful Login"  # Adını değiştirdik
+    pattern: "4624"                 # Başarılı giriş kodu (Sistemde binlerce vardır)
+    type: "info"
+  
+  - name: "Windows Audit Failure"
+    pattern: "Audit Failure"
+    type: "security"
+
+  # --- Linux Kuralları ---
+  - name: "SSH Failed"
+    pattern: "Failed password"
+    type: "security"

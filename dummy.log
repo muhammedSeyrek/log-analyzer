@@ -1,0 +1,6 @@
+Jan 28 10:00:01 server sshd[1234]: Connection form 192.168.1.5
+Jan 28 10:00:05 server sshd[1234]: Failed password for invalid user admin from 192.168.1.5 port 22
+Jan 28 10:05:00 server nginx: GET /index.html 200
+Jan 28 10:05:01 server nginx: GET /admin.php 404
+Jan 28 10:10:00 server sudo:  user : TTY=pts/0 ; PWD=/home/user ; USER=root ; COMMAND=/usr/bin/sudo ls
+Jan 28 10:15:00 server systemd: Started Session 5 of user root.
