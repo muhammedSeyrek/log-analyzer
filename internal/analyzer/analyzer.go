@@ -22,9 +22,9 @@ func AnalyzeFile(filePath string, rules []config.Rule) ([]Result, error) {
 
 	var scanner *bufio.Scanner
 	var cmd *exec.Cmd
+	var file *os.File
 
-	if runtime.GOOS == "windows" && filePath == "SECURITY_LOGS" {
-		fmt.Println("-> Windows OS detected. Using PowerShell to read the file.")
+	if runtime.GOOS == "windows" && (filePath == "SECURITY_LOGS" || filePath == "SYSTEM") {
 		psCommand := "Get-EventLog -LogName Security -Newest 500 | Select-Object -ExpandProperty Message"
 		cmd = exec.Command("powershell", "-Command", psCommand)
 
@@ -38,8 +38,26 @@ func AnalyzeFile(filePath string, rules []config.Rule) ([]Result, error) {
 		}
 		scanner = bufio.NewScanner(stdout)
 
+	} else if runtime.GOOS == "darwin" {
+		cmd = exec.Command("log", "show", "--style", "syslog", "--last", "10m")
+
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := cmd.Start(); err != nil {
+			return nil, err
+		}
+		scanner = bufio.NewScanner(stdout)
+
 	} else {
-		file, err := os.Open(filePath)
+		if runtime.GOOS == "linux" && filePath == "SYSTEM" {
+			filePath = "/var/log/syslog"
+		}
+
+		var err error
+		file, err = os.Open(filePath)
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +75,7 @@ func AnalyzeFile(filePath string, rules []config.Rule) ([]Result, error) {
 		}
 
 		for i := 0; i < len(rules); i++ {
-			if strings.Contains(line, rules[i].Pattern) {
+			if strings.Contains(strings.ToLower(line), strings.ToLower(rules[i].Pattern)) {
 				found := Result{
 					Line:      line,
 					RuleName:  rules[i].Name,
@@ -67,10 +85,13 @@ func AnalyzeFile(filePath string, rules []config.Rule) ([]Result, error) {
 				result = append(result, found)
 			}
 		}
-
 	}
+
 	if cmd != nil {
 		cmd.Wait()
+	}
+	if file != nil {
+		file.Close()
 	}
 	return result, scanner.Err()
 }
@@ -78,9 +99,14 @@ func AnalyzeFile(filePath string, rules []config.Rule) ([]Result, error) {
 // Both for Windows and Linux
 func WatchFile(filePath string, rules []config.Rule) error {
 
-	if runtime.GOOS == "windows" && filePath == "SECURITY_LOGS" {
+	if runtime.GOOS == "windows" && (filePath == "SECURITY_LOGS" || filePath == "SYSTEM") {
 		return watchWindowsLogs(rules)
+	} else if runtime.GOOS == "darwin" {
+		return watchMacLogs(rules)
 	} else {
+		if runtime.GOOS == "linux" && filePath == "SYSTEM" {
+			filePath = "/var/log/syslog"
+		}
 		return watchLinuxLogs(filePath, rules)
 	}
 }
@@ -126,6 +152,26 @@ func watchLinuxLogs(filePath string, rules []config.Rule) error {
 		}
 		checkRules(line, rules)
 	}
+}
+
+func watchMacLogs(rules []config.Rule) error {
+	// "log stream" provides live updates
+	cmd := exec.Command("log", "stream", "--style", "syslog", "--level", "info")
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		checkRules(scanner.Text(), rules)
+	}
+	return cmd.Wait()
 }
 
 func checkRules(line string, rules []config.Rule) {
