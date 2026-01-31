@@ -1,6 +1,7 @@
 files:
   - "SYSTEM"
-
+  - "/var/log/nginx/access.log" 
+  - "/var/log/ufw.log"          
 rules:
   # --- WINDOWS RULES (English OS) ---
   
@@ -54,4 +55,12 @@ rules:
 
   - name: "Attack Detected (Nmap/Scanning)"
     pattern: "did not receive identification string" 
+    type: "security"
+
+  - name: "Nginx 404 Scan"
+    pattern: "404"
+    type: "warning"
+
+  - name: "UFW Blocked"
+    pattern: "UFW BLOCK"
     type: "security"
