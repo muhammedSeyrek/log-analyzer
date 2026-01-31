@@ -1,13 +1,57 @@
 files:
-  - "SYSTEM"  
+  - "SYSTEM"
 
 rules:
-  - name: "Sudo Kullanimi"
-    pattern: "sudo"
-    type: "info"
-  - name: "SSH Failed"
-    pattern: "Failed password"
+  # --- WINDOWS RULES (English OS) ---
+  
+  - name: "Windows Logon Failure"
+    pattern: "failed to log on"      
     type: "security"
-  - name: "Error"
+
+  - name: "Windows Account Locked"
+    pattern: "account was locked out" 
+    type: "critical"
+
+  - name: "Windows User Created"
+    pattern: "user account was created"
+    type: "warning"
+
+  - name: "Windows Group Member Added"
+    pattern: "member was added"       
+    type: "warning"
+
+  - name: "Windows Log Cleared"
+    pattern: "The audit log was cleared"
+    type: "critical"
+
+  # --- LINUX RULES (Common) ---
+
+  - name: "SSH Failed Login"
+    pattern: "Failed password"        
+    type: "security"
+
+  - name: "SSH Invalid User"
+    pattern: "Invalid user"           
+    type: "security"
+
+  - name: "Sudo Privilege Escalation"
+    pattern: "sudo"                   
+    type: "info"
+
+  - name: "Root Session Opened"
+    pattern: "session opened for user root"
+    type: "warning"
+
+  # --- GENERAL RULES ---
+
+  - name: "Critical Error"
+    pattern: "critical"
+    type: "critical"
+
+  - name: "System Error"
     pattern: "error"
     type: "warning"
+
+  - name: "Attack Detected (Nmap/Scanning)"
+    pattern: "did not receive identification string" 
+    type: "security"

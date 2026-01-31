@@ -143,20 +143,52 @@ func WatchFile(filePath string, rules []config.Rule) error {
 }
 
 func watchWindowsLogs(rules []config.Rule) error {
-	fmt.Println("Starting live monitoring of Windows Security Logs...")
+	fmt.Println("Starting live monitoring of Windows Security Logs (Robust Mode)...")
 
-	psCommand := `Get-EventLog -LogName Security -Newest 1 -After (Get-Date) | Select-Object -ExpandProperty Message`
-
-	for {
-		cmd := exec.Command("powershell", "-Command", psCommand)
-		output, _ := cmd.CombinedOutput()
-		line := string(output)
-
-		if line != "" {
-			checkRules(line, rules)
+	psCommand := `
+		$last = Get-Date
+		while ($true) {
+			Start-Sleep -Seconds 1
+			try {
+				$events = Get-EventLog -LogName Security -After $last -ErrorAction Stop
+				$events | ForEach-Object { 
+					$_.Message
+					$last = Get-Date
+				}
+			} catch {
+				# Yeni log yoksa veya hata oluşursa sessizce devam et
+			}
 		}
-		time.Sleep(2 * time.Second)
+	`
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCommand)
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
 	}
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			fmt.Println("[PS ERROR]:", scanner.Text())
+		}
+	}()
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		checkRules(scanner.Text(), rules)
+	}
+
+	return cmd.Wait()
 }
 
 func watchLinuxLogs(filePath string, rules []config.Rule) error {
