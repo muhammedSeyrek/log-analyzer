@@ -1,20 +1,19 @@
-# Builder phase
+
 FROM golang:1.21-alpine AS builder
+
+RUN apk add --no-cache git
+
 WORKDIR /app
-COPY . .
-# Download dependencies and build the application
+
+COPY go.mod go.sum ./
 RUN go mod download
-RUN go build -o log-analyzer ./cmd/main.go
 
-# Final phase
-FROM alpine:latest
-WORKDIR /root/
-# Just copy the built binary and config files from the builder phase
-COPY --from=builder /app/log-analyzer .
-COPY --from=builder /app/config/rules.yaml ./config/
+COPY . .
 
-# Allocate for log storage
-VOLUME ["/logs"]
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 
-# Run the application
-CMD ["./log-analyzer"]
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /out/log-analyzer ./cmd/main.go
+
+FROM scratch AS bin
+COPY --from=builder /out/log-analyzer /
