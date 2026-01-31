@@ -97,3 +97,13 @@ rules:
   - name: "Windows Logon Failure"
     pattern: "failed to log on"
     type: "security"
+
+
+# Raporlama ve Çıktı Yönetimi
+Uygulama, statik analiz sonuçlarını kalıcı hale getirmek için CSV formatında raporlama desteği sunar.
+
+Dizin Yapısı: Tüm rapor dosyaları, uygulamanın çalıştığı kök dizin altında otomatik olarak oluşturulan report/ klasörü içerisinde saklanır.
+
+Dosya İsimlendirme: Raporların karışmasını önlemek ve tarihsel takibi sağlamak amacıyla dosya isimlerinde oluşturulma anına ait zaman damgası (timestamp) kullanılır.
+
+Örnek Dosya Yolu: report/report_20260131_143000.csv
