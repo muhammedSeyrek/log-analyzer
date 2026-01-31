@@ -53,7 +53,7 @@ func AnalyzeFile(filePath string, rules []config.Rule) ([]Result, error) {
 
 	} else {
 		if runtime.GOOS == "linux" && filePath == "SYSTEM" {
-			filePath = "/var/log/syslog"
+			filePath = detectLinuxLogFile()
 		}
 
 		var err error
@@ -105,7 +105,7 @@ func WatchFile(filePath string, rules []config.Rule) error {
 		return watchMacLogs(rules)
 	} else {
 		if runtime.GOOS == "linux" && filePath == "SYSTEM" {
-			filePath = "/var/log/syslog"
+			filePath = detectLinuxLogFile()
 		}
 		return watchLinuxLogs(filePath, rules)
 	}
@@ -185,4 +185,20 @@ func checkRules(line string, rules []config.Rule) {
 			fmt.Printf(" -> %s\n", line)
 		}
 	}
+}
+
+func detectLinuxLogFile() string {
+	candidates := []string{
+		"/var/log/syslog",   // Debian/Ubuntu
+		"/var/log/auth.log", // Debian/Kali (Security)
+		"/var/log/messages", // RHEL/CentOS
+		"/var/log/secure",   // RHEL (Security)
+	}
+
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return "/var/log/syslog" // default
 }
