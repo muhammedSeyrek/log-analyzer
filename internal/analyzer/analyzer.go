@@ -52,16 +52,41 @@ func AnalyzeFile(filePath string, rules []config.Rule) ([]Result, error) {
 		scanner = bufio.NewScanner(stdout)
 
 	} else {
+		useJournal := false
+
+		// If Linux and SYSTEM, check for file existence, else use Journalctl
 		if runtime.GOOS == "linux" && filePath == "SYSTEM" {
-			filePath = detectLinuxLogFile()
+			detectedFile := detectLinuxLogFile()
+			if detectedFile != "" {
+				filePath = detectedFile
+			} else {
+				// No file found, switch to Journalctl
+				useJournal = true
+			}
 		}
 
-		var err error
-		file, err = os.Open(filePath)
-		if err != nil {
-			return nil, err
+		if useJournal {
+			fmt.Println("-> Linux (Journald) detected. Reading logs via 'journalctl'...")
+			// Fetch last 500 logs
+			cmd = exec.Command("journalctl", "-n", "500", "--no-pager")
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				return nil, err
+			}
+			if err := cmd.Start(); err != nil {
+				return nil, err
+			}
+			scanner = bufio.NewScanner(stdout)
+		} else {
+			// Classic file reading mode
+			fmt.Printf("-> Opening file for static analysis: %s\n", filePath)
+			var err error
+			file, err = os.Open(filePath)
+			if err != nil {
+				return nil, fmt.Errorf("file not found or permission denied: %s", filePath)
+			}
+			scanner = bufio.NewScanner(file)
 		}
-		scanner = bufio.NewScanner(file)
 	}
 
 	var result []Result
@@ -105,7 +130,13 @@ func WatchFile(filePath string, rules []config.Rule) error {
 		return watchMacLogs(rules)
 	} else {
 		if runtime.GOOS == "linux" && filePath == "SYSTEM" {
-			filePath = detectLinuxLogFile()
+			detectedFile := detectLinuxLogFile()
+			if detectedFile != "" {
+				return watchLinuxLogs(detectedFile, rules)
+			} else {
+				// If no file found, listen to Journalctl
+				return watchLinuxJournal(rules)
+			}
 		}
 		return watchLinuxLogs(filePath, rules)
 	}
@@ -194,11 +225,30 @@ func detectLinuxLogFile() string {
 		"/var/log/messages", // RHEL/CentOS
 		"/var/log/secure",   // RHEL (Security)
 	}
-
 	for _, path := range candidates {
 		if _, err := os.Stat(path); err == nil {
 			return path
 		}
 	}
-	return "/var/log/syslog" // default
+	return "" // Return empty if none found
+}
+
+func watchLinuxJournal(rules []config.Rule) error {
+	fmt.Println("Starting live monitoring via 'journalctl -f'...")
+
+	cmd := exec.Command("journalctl", "-f", "-n", "0")
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		checkRules(scanner.Text(), rules)
+	}
+	return cmd.Wait()
 }
