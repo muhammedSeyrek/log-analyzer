@@ -1,26 +1,26 @@
-Log Analyzer & Threat Detection Tool
-Bu proje, sistem loglarını (Windows Event Logs, Linux Syslog/Journald ve macOS Logs) analiz ederek potansiyel güvenlik tehditlerini tespit eden, Go (Golang) dili ile geliştirilmiş çapraz platform (cross-platform) bir güvenlik aracıdır.
+# Log Analyzer & Threat Detection Tool
+## Bu proje, sistem loglarını (Windows Event Logs, Linux Syslog/Journald ve macOS Logs) analiz ederek potansiyel güvenlik tehditlerini tespit eden, Go (Golang) dili ile geliştirilmiş çapraz platform (cross-platform) bir güvenlik aracıdır.
 
-Proje, hem statik dosya analizi (geçmiş loglar) hem de canlı sistem izleme (real-time monitoring) yeteneklerine sahiptir.
+## Proje, hem statik dosya analizi (geçmiş loglar) hem de canlı sistem izleme (real-time monitoring) yeteneklerine sahiptir.
 
-Teknik Özellikler
-Dil: Go 
+## Teknik Özellikler
+### Dil: Go 
 
-Mimari: Cross-Platform (Windows, Linux, macOS uyumlu)
+## Mimari: Cross-Platform (Windows, Linux, macOS uyumlu)
 
-Eşzamanlılık (Concurrency): I/O işlemlerinde ve hata yönetiminde Go Routines kullanılarak performans optimizasyonu sağlanmıştır. Standart çıktı (stdout) ve hata çıktıları (stderr) eşzamanlı işlenir.
+## Eşzamanlılık (Concurrency): I/O işlemlerinde ve hata yönetiminde Go Routines kullanılarak performans optimizasyonu sağlanmıştır. Standart çıktı (stdout) ve hata çıktıları (stderr) eşzamanlı işlenir.
 
-Log Kaynakları:
+## Log Kaynakları:
 
-Windows: PowerShell üzerinden Security Event Log akışı.
+### Windows: PowerShell üzerinden Security Event Log akışı.
 
-Linux: journalctl (systemd) ve /var/log dosyaları (Syslog/Auth).
+### Linux: journalctl (systemd) ve /var/log dosyaları (Syslog/Auth).
 
-macOS: Apple Unified Log System (log stream).
+### macOS: Apple Unified Log System (log stream).
 
-Derleme Yöntemi: Docker, bir "Build Environment" olarak kullanılarak hedef işletim sistemi için binary dosyalar üretilir. Hedef makinede Go kurulu olması gerekmez.
+## Derleme Yöntemi: Docker, bir "Build Environment" olarak kullanılarak hedef işletim sistemi için binary dosyalar üretilir. Hedef makinede Go kurulu olması gerekmez.
 
-Kurulum ve Çalıştırma
+# Kurulum ve Çalıştırma
 Bu proje, yerel makinenize Go kurulumu yapmanızı gerektirmez. Docker kullanılarak proje derlenir ve işletim sisteminize uygun, bağımsız çalışabilir (standalone) bir dosya üretilir.
 
 Aşağıda işletim sisteminize uygun adımları takip ediniz.
