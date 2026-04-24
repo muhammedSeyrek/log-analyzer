@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+*.exe
+log-analyzer
+log-analyzer-*
+/out
+/reports
+
+# IDE
+.vscode
+.idea
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Docs (not needed in the image)
+README.md
+LICENSE
+*.md
+
+# Tests and mock data
+*_test.go
+dummy.log
+testdata/

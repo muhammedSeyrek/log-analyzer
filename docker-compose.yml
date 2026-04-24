@@ -1,0 +1,40 @@
+services:
+  help:
+    image: log-analyzer:latest
+    build:
+      context: .
+      target: runner
+  static:
+    image: log-analyzer:latest
+    build:
+      context: .
+      target: runner
+    command: ["loganalyzer", "static", "--file", "/data/dummy.log", "--report"]
+    volumes:
+      - ./dummy.log:/data/dummy.log:ro
+      - ./reports:/app/reports
+      - ./config/rules.yaml:/app/config/rules.yaml:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  live:
+    image: log-analyzer:latest
+    build:
+      context: .
+      target: runner
+    command: ["loganalyzer", "live", "--file", "/data/access.log"]
+    volumes:
+      - ./dummy.log:/data/access.log:ro
+      - ./config/rules.yaml:/app/config/rules.yaml:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  list:
+    image: log-analyzer:latest
+    build:
+      context: .
+      target: runner
+    command: ["list"]
+    read_only: true
