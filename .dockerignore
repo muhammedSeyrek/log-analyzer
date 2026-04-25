@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.github
 
 # Build artifacts
 *.exe
@@ -19,17 +20,17 @@ log-analyzer-*
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker (we don't need to ship the Dockerfile inside the image)
 Dockerfile
 .dockerignore
 docker-compose.yml
 
-# Docs (not needed in the image)
+# Docs
 README.md
 LICENSE
 *.md
 
-# Tests and mock data
+# Tests and sample data
 *_test.go
 dummy.log
 testdata/

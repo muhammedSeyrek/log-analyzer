@@ -1,9 +1,12 @@
 services:
-  help:
+  list:
     image: log-analyzer:latest
     build:
       context: .
       target: runner
+    command: ["list"]
+    read_only: true
+
   static:
     image: log-analyzer:latest
     build:
@@ -30,11 +33,3 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-
-  list:
-    image: log-analyzer:latest
-    build:
-      context: .
-      target: runner
-    command: ["list"]
-    read_only: true

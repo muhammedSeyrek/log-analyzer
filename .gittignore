@@ -1,0 +1,32 @@
+# Build artifacts
+*.exe
+log-analyzer
+log-analyzer-linux
+log-analyzer-*
+/out/
+/bin/
+
+# Generated reports
+/reports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Go specific
+*.test
+*.out
+coverage.html
+vendor/
+
+# But DO commit the generated plugins file — it's part of the build pipeline
+# (if you prefer to gitignore it, uncomment the next line and add a CI step
+# that regenerates it before build)
+# plugins/plugins_gen.go

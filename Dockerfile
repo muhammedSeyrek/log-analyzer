@@ -12,8 +12,7 @@ RUN go mod download
 
 COPY . .
 
-
-RUN cd plugins && go run ../tools/gen/main.go
+RUN go generate ./...
 
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
@@ -28,4 +27,24 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 FROM scratch AS bin
 COPY --from=builder /out/log-analyzer /log-analyzer
 
+
 FROM alpine:3.19 AS runner
+
+
+RUN apk add --no-cache ca-certificates tzdata
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+COPY --from=builder /out/log-analyzer /usr/local/bin/log-analyzer
+
+COPY --chown=appuser:appgroup config/ /app/config/
+
+RUN mkdir -p /app/reports && chown appuser:appgroup /app/reports
+
+USER appuser
+
+ENTRYPOINT ["log-analyzer"]
+
+CMD ["--help"]
