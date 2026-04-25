@@ -83,6 +83,14 @@ fmt:
 vet:
 	go vet ./...
 
+.PHONY: live
+live: build
+	./$(BINARY)$(BIN_EXT) loganalyzer live
+
+.PHONY: advanced-demo
+advanced-demo: build
+	./$(BINARY)$(BIN_EXT) loganalyzer static --file advanced_dummy.log --report
+
 .PHONY: clean
 ifeq ($(OS),Windows_NT)
 clean:

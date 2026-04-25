@@ -1,121 +1,78 @@
-# Log Analyzer & Threat Detection Tool
-Bu proje, sistem loglarını (Windows Event Logs, Linux Syslog/Journald ve macOS Logs) analiz ederek potansiyel güvenlik tehditlerini tespit eden, Go (Golang) dili ile geliştirilmiş çapraz platform (cross-platform) bir güvenlik aracıdır.
+# Log Analyzer & Threat Detection Framework
+### Ayrıntılı Test için Report.pdf dosyasına bakılması rica olunur.
 
-Proje, hem statik dosya analizi (geçmiş loglar) hem de canlı sistem izleme (real-time monitoring) yeteneklerine sahiptir.
+### Projenin özetini geçmeden, nasıl çalıştırılır?
+  •	make docker-run ile çalıştırılabilir,
+  •	make extract docker ile izole linux ortamı,
+  •	make demo ve make advanced-demo Analiz yapılabilir, 
+  •	make live ile canlı Analiz yapılabilir (Windows ise bazı kısıtlamaalar kaldırılmalı, saldırı yapılacaksa firewall kapatılabilir.)
+  •	make clean ile herşey eski haline döndürülebilir.
 
-## Teknik Özellikler
-Dil: Go 
+Bu proje, sistem loglarını (Windows, Linux, macOS) analiz ederek güvenlik tehditlerini tespit etmek amacıyla geliştirilmiş, Go tabanlı ve eklenti (plugin) mimarisine sahip bir güvenlik aracıdır. Proje, hem geçmişe dönük statik analiz hem de gerçek zamanlı (live) izleme yetenekleri sunar.
 
-Mimari: Cross-Platform (Windows, Linux, macOS uyumlu)
+# Teknik Özellikler
+Plugin Tabanlı Mimari: Yeni analiz modülleri plugins/ dizinine eklenerek CLI'a otomatik entegre edilebilir.
 
-Eşzamanlılık (Concurrency): I/O işlemlerinde ve hata yönetiminde Go Routines kullanılarak performans optimizasyonu sağlanmıştır. Standart çıktı (stdout) ve hata çıktıları (stderr) eşzamanlı işlenir.
+Çapraz Platform: Docker tabanlı derleme sistemi ile Windows, Linux ve macOS için bağımsız çalıştırılabilir (binary) dosyalar üretilir.
 
-## Log Kaynakları:
+Tehdit Algılama: config/rules.yaml üzerinden özelleştirilebilir pattern eşleşmeleri.
 
-Windows: PowerShell üzerinden Security Event Log akışı.
+Eşzamanlı İşleme: Go Routines ile yüksek performanslı log tarama ve I/O yönetimi.
 
-Linux: journalctl (systemd) ve /var/log dosyaları (Syslog/Auth).
+Raporlama: Tespit edilen tehditlerin zaman damgalı CSV formatında dışa aktarımı.
 
-macOS: Apple Unified Log System (log stream).
-
-## Derleme Yöntemi: Docker, bir "Build Environment" olarak kullanılarak hedef işletim sistemi için binary dosyalar üretilir. Hedef makinede Go kurulu olması gerekmez.
-
-# Kurulum ve Çalıştırma
-Bu proje, yerel makinenize Go kurulumu yapmanızı gerektirmez. Docker kullanılarak proje derlenir ve işletim sisteminize uygun, bağımsız çalışabilir (standalone) bir dosya üretilir.
-
-Aşağıda işletim sisteminize uygun adımları takip ediniz.
-
-1. Linux (Debian, Ubuntu, Kali, CentOS)
-Linux sistemlerde program, doğrudan çekirdek (kernel) loglarına erişmek için journalctl veya /var/log kaynaklarını kullanır. Bu nedenle Root yetkisi gerektirir.
+# Kurulum ve Derleme
+Docker ile Derleme
+Yerel bir bağımlılık kurmadan, hedef işletim sistemi için binary dosyalarınızı Docker üzerinden üretebilirsiniz.
 
 Bash
-# 1. Docker kullanarak Linux uyumlu binary dosyasını oluşturun
-docker build --build-arg TARGETOS=linux -t analyzer-builder .
-
-# 2. Üretilen dosyayı almak için geçici bir konteyner oluşturun
-docker create --name temp-container analyzer-builder
-
-# 3. Dosyayı konteynerden dışarı aktarın
-docker cp temp-container:/log-analyzer ./log-analyzer
-
-# 4. Geçici konteyneri temizleyin
-docker rm temp-container
-
-# 5. Dosyaya çalıştırma izni verin
-chmod +x log-analyzer
-
-# 6. Uygulamayı ROOT yetkisiyle başlatın (Sistem loglarına erişim için zorunludur)
-sudo ./log-analyzer
-2. Windows (10/11/Server)
-Windows üzerinde Güvenlik Loglarına (Security Event Log) erişim, Yönetici (Administrator) yetkileri gerektirir.
+# Linux binary'sini derleyip ./out dizinine çıkartmak için:
+make extract
+Makefile ile Yerel Geliştirme
+Geliştirme ortamınızda Go kuruluysa, Makefile üzerindeki otomasyonları kullanabilirsiniz:
 
 Bash
-# 1. Windows uyumlu .exe dosyasını oluşturun
-docker build --build-arg TARGETOS=windows --build-arg TARGETARCH=amd64 -t analyzer-win .
+make build   # Plugin listesini günceller ve projeyi derler
+make list    # Kayıtlı plugin'leri listeler
+make clean   # Derleme artıklarını temizler
+Kullanım
+Uygulama, plugins/ dizinindeki modülleri otomatik olarak algılar. Ana eklentimiz olan loganalyzer üç farklı modda çalışır:
 
-# 2. Geçici taşıyıcı oluşturun
-docker create --name temp-win analyzer-win
-
-# 3. Dosyayı .exe uzantısıyla dışarı aktarın
-docker cp temp-win:/log-analyzer ./log-analyzer.exe
-
-# 4. Temizlik
-docker rm temp-win
-Çalıştırma: Oluşturulan log-analyzer.exe dosyasına sağ tıklayın ve "Yönetici Olarak Çalıştır" seçeneğini kullanın.
-
-3. macOS (Apple Silicon & Intel)
-macOS üzerinde çalıştırırken işlemci mimarisine (M1/M2 vs Intel) dikkat edilmelidir.
-
-Apple Silicon (M1, M2, M3 vb.) için:
+Statik Analiz
+Diskteki mevcut log dosyalarını tarar ve bulguları raporlar.
 
 Bash
-docker build --build-arg TARGETOS=darwin --build-arg TARGETARCH=arm64 -t analyzer-mac-m1 .
-docker create --name temp-mac analyzer-mac-m1
-docker cp temp-mac:/log-analyzer ./log-analyzer-mac
-docker rm temp-mac
-chmod +x log-analyzer-mac
-sudo ./log-analyzer-mac
-Intel İşlemcili Mac'ler için:
+# Hızlı demo (dummy.log üzerinden)
+make demo
+
+# Özel bir dosya tarama ve rapor oluşturma
+./log-analyzer loganalyzer static --file advanced_dummy.log --report
+[Ekran Görüntüsü Yeri: Terminal Statik Analiz Sonuçları]
+Açıklama: Terminal üzerinde yakalanan SSH ve Sudo tehditlerinin görünümü.
+
+Canlı İzleme (Live Mode)
+Sistemi anlık olarak dinler ve bir tehdit tespit edildiğinde uyarı verir. (Windows Security Log veya Linux /var/log erişimi için Administrator/Root yetkisi gerektirir).
 
 Bash
-docker build --build-arg TARGETOS=darwin --build-arg TARGETARCH=amd64 -t analyzer-mac-intel .
-docker create --name temp-mac analyzer-mac-intel
-docker cp temp-mac:/log-analyzer ./log-analyzer-mac
-docker rm temp-mac
-chmod +x log-analyzer-mac
-sudo ./log-analyzer-mac
-Yapılandırma
-Tehdit algılama kuralları config/rules.yaml dosyasında tanımlanmıştır. Program yeniden derlenmeden bu kurallar değiştirilebilir.
+make live
+[Ekran Görüntüsü Yeri: Canlı İzleme Ekranı]
+Açıklama: Sistem loglarının anlık takibi sırasında yakalanan alarmlar.
 
-Örnek Kural Yapısı:
+# Raporlama
+Başarılı bir statik analizden sonra --report parametresi kullanıldığında, bulgular reports/ dizini altında saklanır.
 
-YAML
-rules:
-  - name: "SSH Brute Force"
-    pattern: "Failed password"
-    type: "security"
-  - name: "Windows Logon Failure"
-    pattern: "failed to log on"
-    type: "security"
+Dosya Formatı: report_YYYY-MM-DD_HH-MM-SS.csv
 
+İçerik: Kural Adı, Tehdit Tipi, Eşleşen Log Satırı ve Zaman Damgası.
 
-# Raporlama ve Çıktı Yönetimi
-Uygulama, statik analiz sonuçlarını kalıcı hale getirmek için CSV formatında raporlama desteği sunar.
+[Ekran Görüntüsü Yeri: CSV Rapor Örneği]
+Açıklama: Oluşturulan bir CSV raporunun Excel veya metin düzenleyicideki görünümü.
 
-Dizin Yapısı: Tüm rapor dosyaları, uygulamanın çalıştığı kök dizin altında otomatik olarak oluşturulan report/ klasörü içerisinde saklanır.
+# Test Senaryoları
+Projeyle birlikte gelen advanced_dummy.log dosyasını taratarak aşağıdaki tespit kurallarını simüle edebilirsiniz:
 
-Dosya İsimlendirme: Raporların karışmasını önlemek ve tarihsel takibi sağlamak amacıyla dosya isimlerinde oluşturulma anına ait zaman damgası (timestamp) kullanılır.
+Brute Force: Çoklu başarısız SSH giriş denemeleri.
 
-Örnek Dosya Yolu: report/report_20260131_143000.csv
+Privilege Escalation: Şüpheli sudo yetki kullanımları.
 
-
-
-# 3 modda çalışacak;
-  ./log-analyzer loganalyzer static --file dummy.log --report
-  ./log-analyzer loganalyzer live --file /var/log/auth.log
-  ./log-analyzer loganalyzer interactive
-
-# built-in komutları var;
-  ./log-analyzer list          # Kayıtlı plugin'leri listeler
-  ./log-analyzer --help        # Yardım ekranı
-  ./log-analyzer --version     # Versiyon bilgisi
+Persistence: Yeni kullanıcı ekleme ve güvenlik gruplarına atama işlemleri.

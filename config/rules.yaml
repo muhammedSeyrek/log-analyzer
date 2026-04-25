@@ -3,29 +3,29 @@ files:
   - "/var/log/nginx/access.log" 
   - "/var/log/ufw.log"          
 rules:
-  # --- WINDOWS RULES (English OS) ---
+  # --- WINDOWS RULES (Event ID Based - Language Agnostic) ---
   
   - name: "Windows Logon Failure"
-    pattern: "failed to log on"      
+    pattern: "4625"      
     type: "security"
 
   - name: "Windows Account Locked"
-    pattern: "account was locked out" 
+    pattern: "4740" 
     type: "critical"
 
   - name: "Windows User Created"
-    pattern: "user account was created"
+    pattern: "4720"
     type: "warning"
 
   - name: "Windows Group Member Added"
-    pattern: "member was added"       
+    pattern: "4732"       
     type: "warning"
 
   - name: "Windows Log Cleared"
-    pattern: "The audit log was cleared"
+    pattern: "1102"
     type: "critical"
 
-  # --- LINUX RULES (Common) ---
+  # --- LINUX RULES (Text Based) ---
 
   - name: "SSH Failed Login"
     pattern: "Failed password"        

@@ -1,0 +1,15 @@
+# --- LINUX: Gelişmiş SSH Brute-Force & Yetki Yükseltme Denemeleri ---
+Apr 25 14:05:12 server1 sshd[10200]: Failed password for root from 10.0.0.5 port 55432 ssh2
+Apr 25 14:05:15 server1 sshd[10200]: Failed password for root from 10.0.0.5 port 55432 ssh2
+Apr 25 14:05:18 server1 sshd[10200]: Disconnecting authenticating user root 10.0.0.5 port 55432: Too many authentication failures
+Apr 25 14:10:00 server1 sudo: hacker : TTY=pts/1 ; PWD=/tmp ; USER=root ; COMMAND=/bin/su -
+
+# --- WINDOWS: Şüpheli Hesap Hareketleri (EventLog Formatı) ---
+2026-04-25 14:15:22 EventID:4625 An account failed to log on. Account Name: Administrator. Workstation Name: WIN-SRV01. Source IP: 192.168.1.10.
+2026-04-25 14:20:00 EventID:4720 A user account was created. Account Name: backdoor_admin.
+2026-04-25 14:21:00 EventID:4732 A member was added to a security-enabled local group. Member: backdoor_admin Group: Administrators.
+2026-04-25 14:22:15 EventID:1102 The audit log was cleared by user: backdoor_admin.
+
+# --- WEB SUNUCUSU: Path Traversal (Dizin Atlama) Atağı ---
+192.168.1.50 - - [25/Apr/2026:14:30:00 +0300] "GET /../../../etc/passwd HTTP/1.1" 404 153 "-" "Mozilla/5.0"
+192.168.1.50 - - [25/Apr/2026:14:30:02 +0300] "GET /login.php?user=admin' OR '1'='1 HTTP/1.1" 200 4532 "-" "curl/7.68.0"
