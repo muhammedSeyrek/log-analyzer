@@ -1,5 +1,5 @@
 # Log Analyzer & Threat Detection Framework
-### Ayrıntılı Test için Report.pdf dosyasına bakılması rica olunur.
+### Ayrıntılı Test için Report.pdf veya Report_second.pdf dosyasına bakılması rica olunur.
 
 ### Projenin özetini geçmeden, nasıl çalıştırılır?
   •	make docker-run ile çalıştırılabilir,
@@ -76,3 +76,85 @@ Brute Force: Çoklu başarısız SSH giriş denemeleri.
 Privilege Escalation: Şüpheli sudo yetki kullanımları.
 
 Persistence: Yeni kullanıcı ekleme ve güvenlik gruplarına atama işlemleri.
+# Stream Processor (Gerçek Zamanlı Veri İşleme Modülü)
+
+streamprocessor, ana iskelete plugin mimarisi üzerinden eklenmiş ikinci bir eklentidir. Amacı, yüksek hacimli bir log/trafik akışını diske veya belleğe tamamını yüklemeden, satır satır gelirken anlık olarak parse edip filtrelemektir. Veriyi standart girdiden (stdin) okur; bu sayede herhangi bir kaynaktan boru (pipe) ile beslenebilir ve Docker konteyneri içinde ek bir bağlama (mount) gerektirmez.
+
+Modül, loganalyzer ile aynı plugin sözleşmesini (Name / Description / Command) uygular ve go generate adımıyla CLI'a otomatik kaydolur; ana koda hiçbir müdahale yapılmadan sisteme dahil olur.
+
+## Çalışma Mantığı
+
+Modül bir üretici-tüketici hattı (producer-consumer pipeline) olarak kurgulanmıştır:
+
+Okuyucu, girdiyi bufio.Scanner ile tek seferde bir satır okur ve sınırlı kapasiteli (bounded) bir kanala yazar. Bir veya daha fazla işçi (worker) goroutine bu kanaldan satırları alır, config/rules.yaml içindeki kurallara göre eşleştirir ve eşleşen satırı anında çıktıya yazıp bırakır.
+
+Bellek kullanımının sabit kalmasının üç nedeni vardır: akışın tamamı hiçbir zaman bellekte tutulmaz, yalnızca işlenmekte olan satırlar bellektedir; kanal sınırlı kapasiteli olduğu için işçiler yavaş kaldığında okuyucu otomatik olarak bekler (backpressure) ve kuyruk sınırsız büyüyemez; eşleşen satırlar biriktirilmez, anında yazılıp atılır. Bu nedenle akış ister bir milyon ister sonsuz satır olsun, bellek tüketimi aynı kalır.
+
+İşçiler eşzamanlı çalıştığından, sayımlar her işçinin kendi yerel sayaçlarında tutulur ve akış bittiğinde tek seferde birleştirilir. Böylece paylaşılan veriye eşzamanlı yazımdan kaynaklanan kilit maliyeti ve yarış durumu (race condition) ortadan kalkar.
+
+## Kullanım
+
+Varsayılan davranış, düşük bellek tüketen stream modudur. Sadece logları incelemek isteyen bir kullanıcı herhangi bir bayrak vermeden çalıştırdığında otomatik olarak bu modda, sade çıktıyla çalışır: yalnızca eşleşen satırlar ve kısa bir özet gösterilir.
+
+```bash
+# Bir dosyayı işleme
+cat dummy.log | log-analyzer streamprocessor run
+
+# Sentetik trafik üretip aynı anda işleme
+log-analyzer streamprocessor gen --count 1000000 | log-analyzer streamprocessor run
+```
+
+Detaylı tanılama çıktısı (bellek kullanımı, saniyedeki satır sayısı, kural ve tip bazında eşleşme dökümü) yalnızca --verbose bayrağıyla istenir:
+
+```bash
+log-analyzer streamprocessor gen --count 1000000 | log-analyzer streamprocessor run --verbose
+```
+
+## Sentetik Trafik Üreteci
+
+gen alt komutu, ayrı bir test aracına ihtiyaç duymadan, kurallara uyan ve uymayan satırların karışımından oluşan gerçekçi sahte trafik üretir. Üreteç de tek seferde bir satır ürettiği için kendisi de bellekte büyümez.
+
+```bash
+log-analyzer streamprocessor gen --count 1000000        # 1 milyon satır üret
+log-analyzer streamprocessor gen --count 0               # sonsuz akış (Ctrl+C ile durur)
+log-analyzer streamprocessor gen --rate 5                # saniyede 5 satır (canlı akış hissi)
+log-analyzer streamprocessor gen --match-ratio 0.3       # satırların %30'u bir kurala uysun
+```
+
+## Bellek Karşılaştırması (stream ve buffered)
+
+Modülde, tasarımın faydasını ölçülebilir biçimde göstermek için iki mod bulunur. Varsayılan stream modu sabit bellekte çalışır. buffered modu ise eski yaklaşımı temsil eder: eşleşen tüm satırları bellekte biriktirip işlem sonunda yazar, dolayısıyla bellek kullanımı eşleşme sayısıyla doğru orantılı büyür. İki mod da aynı girdide aynı sonucu üretir; tek fark bellek davranışıdır.
+
+```bash
+# Sabit bellek
+log-analyzer streamprocessor gen --count 5000000 --match-ratio 1.0 | log-analyzer streamprocessor run --verbose
+
+# Bellek akışla birlikte büyür
+log-analyzer streamprocessor gen --count 5000000 --match-ratio 1.0 | log-analyzer streamprocessor run --verbose --mode buffered
+```
+
+Aynı beş milyon eşleşen satırda stream modu birkaç megabaytta sabit kalırken, buffered modunun bellek tüketimi yüzlerce megabayta çıkar. Akış büyüdükçe bu fark doğrusal olarak açılır.
+
+## Bayraklar
+
+```
+--mode, -m         İşleme modu: stream (varsayılan) veya buffered
+--workers, -w      İşçi goroutine sayısı (stream modu, varsayılan 1)
+--buffer, -b       Kanal kapasitesi (stream modu, varsayılan 1000)
+--filter, -f       Kurallara ek olarak aranacak metin (opsiyonel)
+--quiet, -q        Eşleşen satırları gizle, sadece özet göster
+--verbose, -V      Tam tanılama raporu (bellek, hız, kural/tip dökümü)
+--config, -c       Kural dosyası yolu (varsayılan config/rules.yaml)
+```
+
+## Docker
+
+streamprocessor, Dockerfile'da ayrı bir işlem gerektirmez; mevcut go generate ve derleme adımları sayesinde imaja otomatik dahil olur. Konteyner içinde veri akışını boru ile kurmak için entry point'in kabuk (sh) ile çağrılması yeterlidir:
+
+```bash
+make docker-stream
+
+# veya doğrudan:
+docker run --rm --entrypoint sh log-analyzer:latest -c \
+  "log-analyzer streamprocessor gen --count 1000000 | log-analyzer streamprocessor run -q -V --workers 4"
+```
