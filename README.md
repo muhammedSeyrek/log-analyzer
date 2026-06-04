@@ -1,5 +1,5 @@
 # Log Analyzer & Threat Detection Framework
-### Ayrıntılı Test için Report.pdf veya Report_second.pdf dosyasına bakılması rica olunur.
+
 
 ### Projenin özetini geçmeden, nasıl çalıştırılır?
   •	make docker-run ile çalıştırılabilir,
