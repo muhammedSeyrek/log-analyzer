@@ -33,3 +33,15 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+  
+  stream:
+    image: log-analyzer:latest
+    build:
+      context: .
+      target: runner
+    entrypoint: ["sh", "-c"]
+    command:
+      - "log-analyzer streamprocessor gen --count 1000000 | log-analyzer streamprocessor run -q -V --workers 4"
+    read_only: true
+    tmpfs:
+      - /tmp

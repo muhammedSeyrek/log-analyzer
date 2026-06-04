@@ -91,6 +91,22 @@ live: build
 advanced-demo: build
 	./$(BINARY)$(BIN_EXT) loganalyzer static --file advanced_dummy.log --report
 
+.PHONY: stream-demo
+stream-demo: build
+	./$(BINARY)$(BIN_EXT) streamprocessor gen --count 1000000 | ./$(BINARY)$(BIN_EXT) streamprocessor run -q -V --workers 4
+
+.PHONY: stream-compare
+stream-compare: build
+	@echo "=== STREAM mode (constant memory) ==="
+	./$(BINARY)$(BIN_EXT) streamprocessor gen --count 2000000 --match-ratio 1.0 | ./$(BINARY)$(BIN_EXT) streamprocessor run -q -V
+	@echo ""
+	@echo "=== BUFFERED mode (memory grows) ==="
+	./$(BINARY)$(BIN_EXT) streamprocessor gen --count 2000000 --match-ratio 1.0 | ./$(BINARY)$(BIN_EXT) streamprocessor run -q -V --mode buffered
+
+.PHONY: stream-live
+stream-live: build
+	./$(BINARY)$(BIN_EXT) streamprocessor gen --count 0 --rate 5 | ./$(BINARY)$(BIN_EXT) streamprocessor run
+
 .PHONY: clean
 ifeq ($(OS),Windows_NT)
 clean:
@@ -121,6 +137,11 @@ docker-run: docker
 .PHONY: docker-list
 docker-list: docker
 	docker run --rm $(IMAGE):$(TAG) list
+
+.PHONY: docker-stream
+docker-stream: docker
+	docker run --rm --entrypoint sh $(IMAGE):$(TAG) -c \
+	  "log-analyzer streamprocessor gen --count 1000000 | log-analyzer streamprocessor run -q -V --workers 4"
 
 .PHONY: extract
 extract:
