@@ -107,6 +107,18 @@ stream-compare: build
 stream-live: build
 	./$(BINARY)$(BIN_EXT) streamprocessor gen --count 0 --rate 5 | ./$(BINARY)$(BIN_EXT) streamprocessor run
 
+.PHONY: netmetrics-collect
+netmetrics-collect: build
+	./$(BINARY)$(BIN_EXT) netmetrics collect --bind-port 9999
+
+.PHONY: netmetrics-capture
+netmetrics-capture: build
+	sudo ./$(BINARY)$(BIN_EXT) netmetrics capture --remote-host 127.0.0.1 --remote-port 9999 --interval 5
+
+.PHONY: netmetrics-docker
+netmetrics-docker: docker
+	docker compose up --build netmetrics-collector netmetrics-agent
+
 .PHONY: clean
 ifeq ($(OS),Windows_NT)
 clean:

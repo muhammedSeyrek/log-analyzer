@@ -31,7 +31,10 @@ COPY --from=builder /out/log-analyzer /log-analyzer
 FROM alpine:3.19 AS runner
 
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata python3 py3-pip libpcap tcpdump \
+    && pip3 install --no-cache-dir --break-system-packages scapy==2.5.0
+
+ENV NETMETRICS_PYTHON=/usr/bin/python3
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 

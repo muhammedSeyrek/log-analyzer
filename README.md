@@ -82,6 +82,15 @@ streamprocessor, ana iskelete plugin mimarisi üzerinden eklenmiş ikinci bir ek
 
 Modül, loganalyzer ile aynı plugin sözleşmesini (Name / Description / Command) uygular ve go generate adımıyla CLI'a otomatik kaydolur; ana koda hiçbir müdahale yapılmadan sisteme dahil olur.
 
+## netmetrics eklentisi (Scapy + UDP)
+
+Uc uncu eklenti `netmetrics`, Scapy ile ag paketlerini yakalar ve metrikleri
+UDP uzerinden uzak bir sunucuya push eder; sunucu tarafi istenirse Slack'e
+iletir. Ayrintili kullanim icin: NETMETRICS.md
+
+    docker compose up --build netmetrics-collector netmetrics-agent
+    log-analyzer list   # -> netmetrics gorunur
+
 ## Çalışma Mantığı
 
 Modül bir üretici-tüketici hattı (producer-consumer pipeline) olarak kurgulanmıştır:

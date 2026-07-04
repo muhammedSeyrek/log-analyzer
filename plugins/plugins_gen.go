@@ -4,5 +4,6 @@ package plugins
 
 import (
 	_ "log-analyzer/plugins/loganalyzer"
+	_ "log-analyzer/plugins/netmetrics"
 	_ "log-analyzer/plugins/streamprocessor"
 )

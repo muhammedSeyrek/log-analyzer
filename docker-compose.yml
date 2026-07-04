@@ -33,7 +33,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-  
+
   stream:
     image: log-analyzer:latest
     build:
@@ -45,3 +45,54 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+
+  netmetrics-collector:
+    image: log-analyzer:latest
+    build:
+      context: .
+      target: runner
+    command: ["netmetrics", "collect", "--bind-port", "9999"]
+    environment:
+      SLACK_WEBHOOK_URL: ""
+    networks:
+      - netmetrics
+    restart: unless-stopped
+
+  netmetrics-agent:
+    image: log-analyzer:latest
+    build:
+      context: .
+      target: runner
+    command:
+      - "netmetrics"
+      - "capture"
+      - "--remote-host=netmetrics-collector"
+      - "--remote-port=9999"
+      - "--interval=5"
+      - "--agent-id=sniffer-01"
+      - "--iface=eth0"
+    depends_on:
+      - netmetrics-collector
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    user: "0:0"
+    networks:
+      - netmetrics
+    restart: unless-stopped
+
+  netmetrics-traffic:
+    image: python:3.12-slim
+    command:
+      - "sh"
+      - "-c"
+      - "while true; do python -c \"import socket; socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b'ping',('netmetrics-collector', 9999))\"; sleep 1; done"
+    depends_on:
+      - netmetrics-collector
+    networks:
+      - netmetrics
+    restart: unless-stopped
+
+networks:
+  netmetrics:
+    driver: bridge
